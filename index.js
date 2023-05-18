@@ -8,7 +8,6 @@ const mongo = require('mongodb')
 const mongoose = require('mongoose')
 const urlparser = require('url')
 const dns = require('dns');
-const shortid = require('shortid');
 const validUrl = require('valid_url')
 const regex = /^(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9]+(?:\.[a-zA-Z]{2,})+(?:\/[\w#]+\/?)*$/
 
@@ -26,13 +25,12 @@ connection.once('open', () => {
   console.log("MongoDB database here baby!")
 })
 
+
+
 const Schema = mongoose.Schema
 const urlSchema = new Schema ({
   original_url: String,
-  url_id: {
-    type: String,
-    unique: true
-  }
+  short_url: String
 })
 const URL = mongoose.model("URL", urlSchema)
 
@@ -57,25 +55,28 @@ app.post('/api/shorturl', async(req, res) => {
   const inputUrl = req.body.url
   let urlInDB =  await URL.findOne({original_url: inputUrl})
 
+  let count = await URL.countDocuments({}) + 1
+
+
   if(!regex.test(inputUrl)) {
     res.json({error: 'Invalid URL'})
   } else {
       if(urlInDB) {
         res.json({
           original_url: urlInDB.original_url,
-          url_id: urlInDB.url_id
+          short_url: urlInDB.short_url
         }) 
       } else {
         urlInDB = new URL ({
           original_url: inputUrl,
-          url_id: shortid.generate()
+          short_url: count
         })
 
         await urlInDB.save()
 
         res.json({
           original_url: urlInDB.original_url,
-          url_id: urlInDB.url_id
+          short_url: urlInDB.short_url
         })
       }
   }
@@ -83,14 +84,14 @@ app.post('/api/shorturl', async(req, res) => {
 })
 
 
-app.get('/api/shorturl/:id', async (req, res) => {
-  let paramUrl = req.params.id
+app.get('/api/shorturl/:short_url', async (req, res) => {
+  let paramUrl = req.params.short_url
   let idInDB = await URL.findOne({
-    url_id: paramUrl
+    short_url: +paramUrl
   })
 
   if(idInDB) {
-      res.redirect(idInDB.original_url)
+      return res.redirect(idInDB.original_url)
   } else {
       res.json({
         error: 'This URL is not in the DB'
