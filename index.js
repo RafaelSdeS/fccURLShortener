@@ -4,11 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser')
 const app = express();
-const mongo = require('mongodb')
 const mongoose = require('mongoose')
-const urlparser = require('url')
-const dns = require('dns');
-const validUrl = require('valid_url')
 const regex = /^(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9]+(?:\.[a-zA-Z]{2,})+(?:\/[\w#]+\/?)*$/
 
 const uri = process.env.DB_URI
@@ -25,16 +21,14 @@ connection.once('open', () => {
   console.log("MongoDB database here baby!")
 })
 
-
-
 const Schema = mongoose.Schema
 const urlSchema = new Schema ({
   original_url: String,
-  short_url: String
+  short_url: Number
 })
 const URL = mongoose.model("URL", urlSchema)
 
-// Basic Configuration
+// Basic Config
 const port = process.env.PORT || 3000;
 
 app.use(cors());
@@ -56,7 +50,6 @@ app.post('/api/shorturl', async(req, res) => {
   let urlInDB =  await URL.findOne({original_url: inputUrl})
 
   let count = await URL.countDocuments({}) + 1
-
 
   if(!regex.test(inputUrl)) {
     res.json({error: 'Invalid URL'})
@@ -83,7 +76,6 @@ app.post('/api/shorturl', async(req, res) => {
 
 })
 
-
 app.get('/api/shorturl/:short_url', async (req, res) => {
   let paramUrl = req.params.short_url
   let idInDB = await URL.findOne({
@@ -98,8 +90,6 @@ app.get('/api/shorturl/:short_url', async (req, res) => {
       })
   }
 })
-
-
 
 // App listen
 app.listen(port, function() {
